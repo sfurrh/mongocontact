@@ -1,0 +1,431 @@
+<style type="text/css">
+body{
+	margin:10px;
+}
+.vcard{
+	border:1pt solid black;
+	min-height:100px;
+	min-width:162px;
+	margin-bottom:10px;
+}
+.vcard .head{
+	background-color:#cfcfcf;
+	font-weight:bold;
+	height:20px;
+	cursor:pointer;
+}
+#controls{
+	position:absolute;	
+}
+.hovertext .content{
+	display:none;
+}
+
+.hovertext:hover .content{
+	display:block;
+	position:relative;
+	left:10px;
+	min-width:200px;
+	min-height:100px;
+	overflow:auto;
+	border:1px solid black;
+	border-radius:4px;
+	background-color:white;
+	font-size:9pt;
+	color:#c0c0c0;
+	text-decoration:italic;
+	z-index:100;
+	
+}
+#properties{
+	font-style:italic;
+	font-size:9pt;
+	color:#cfcfcf;
+	width:600px;
+}
+#properties .id{
+	display:inline-block;
+	width:50%;
+}
+#properties .modified{
+	font-weight:bold;
+	color:blue;
+	display:inline-block;
+	width:50%;
+	text-align:right;
+}
+.button{
+	cursor:pointer;
+}
+/*icons*/
+.icon{
+	background-image:url(../img/icons-black.png);
+	background-repeat:no-repeat;
+	width:14px;
+	height:14px;
+	display:inline-block;
+	border:0px solid black;
+}
+.white{
+	background-image:url(../img/icons-white.png);
+}
+.delete{
+	background-position:-312px 0px;
+}
+.info{
+	background-position:-121px -96px;
+}
+.new{
+	background-position:0px -96px;
+}
+</style>
+<script>
+$(document).ready(function(){
+	listContacts();
+	var $editor=$("#editor");
+	$("#controls").append($("<span/>").addClass("button").addClass("icon").addClass("new").click(function(e){
+		createNew();
+	})).position({my:"right bottom",at:"right bottom",of:$editor});
+	$editor.keydown(function(event){
+		
+		var target = $(this);
+		var value = target.val();
+		var cursor = target.caret();
+		var key = event.which;
+		var lineNo = getCurrentLineIndex(target);
+		
+		if( key == 13) {//enter
+			event.preventDefault();
+			if(event.ctrlKey && event.shiftKey){
+				save(target.val());
+			}else{
+				cursor=nextLine(target,true);
+				value=target.val();
+			}
+		}else if(key == 9){//tab
+			if(!event.shiftKey){
+				event.preventDefault();
+				cursor=nextLine(target,false)
+				value=target.val();
+			}else{
+				return;
+			}
+		}else if(key == 32){
+			if(event.shiftKey || event.ctrlKey){
+				event.preventDefault();
+				var lines = value.split("\n");
+				var line = lines[lineNo];
+				cursor = target.caret();
+				if(event.shiftKey){
+					if(line.indexOf("\t")==0){
+						line=line.substring(1);
+						cursor--;
+					}
+				}else{
+					line="\t"+line;
+					cursor++;
+				}
+				lines[lineNo]=line;
+				value=lines.join("\n");
+				target.val(value);
+				target.caret(cursor);
+			}
+		}else if(event.ctrlKey || (key>=37 && key<=40)){
+			return;
+		}
+		
+		lineNo = getCurrentLineIndex(target);
+		var lineArray = value.split("\n");
+		
+		lineTxt = lineArray[lineNo];
+		
+		var io=lineTxt.indexOf("]:");
+		
+		if(io>0){
+			var linePos=cursor;
+			if(lineNo>0){
+				cursor=0;
+				for(var i=0;i<lineNo;i++){
+					var len = lineArray[i].length+1;
+					linePos-=len;
+					cursor+=len;
+				}				
+			}else{
+				cursor=0;
+			}
+			io+=2;
+			if(linePos<io){
+				target.caret(cursor+io);
+			}
+		}
+		
+	});
+})
+function getCurrentLineIndex(target){
+	var value=target.val();
+	var cursor=target.caret();
+	var lineIndex = value.substring(0,cursor).split("\n").length - 1;
+	return lineIndex;
+}
+function nextLine(target,insert){
+	var value=target.val();
+	var cursor=target.caret();
+	if(cursor<value.length && ! insert){
+		cursor=target.caret(value.indexOf("\n",cursor)+2);
+	}else{
+		if(insert){
+			target.val(value.substring(0,cursor)+"\n[field]\n"+value.substring(cursor+1));
+		}else{
+			target.val(value+"\n[field]");
+		}
+		value=target.val();
+		cursor=target.caret(value.indexOf("\n",cursor)+2);
+		target.selectRange(cursor,cursor+5)
+	}
+	return cursor;
+}
+function createNew(){
+	var dflt = {"fullname":"","lastname":"","firstname":"","jobtitle":"","department":"","company":"","businessaddress":"","imaddress":"","business":"","home":"","mobile":"","e-mail":"","e-maildisplayas":"","webpage":""};
+	var txt=getEditText(dflt);
+	$("#editor").empty().val(txt);
+	currentId = undefined;
+	var $props = $("#properties").empty();
+}
+currentId = null;
+function edit(c){
+	currentId = c._id;
+	var txt = getEditText(c);
+	$("#editor").val(txt);
+	
+	var $props = $("#properties").empty();
+	
+	var $id = $("<span/>").addClass("id").text("id: "+c._id);
+	$props.append($id);
+	
+	if(c._modified){
+		$props.append($("<span/>").addClass("modified").text(" modified: "+c._modified));
+	}
+}
+function getEditText(o,indent){
+	var out="";
+	if(!indent){
+		indent="";
+	}
+	if(typeof o == "string"){
+		return o+"\n";
+	}else{
+		if(indent.length>0){
+			out+="\n";
+		}
+		for(var i in o){
+			if(i.indexOf("_")!=0){
+				var label="["+i+"]:";
+				if(! isNaN(i)){
+					label="";
+				}
+				
+				out+=indent+label+getEditText(o[i],indent+"\t");
+			}
+		}
+		return out;
+	}
+}
+
+function save(txt){
+	var lines = txt.split("\n");
+	var obj = new Property("root");
+	var curObj = obj;
+	var lastObj = null;
+	curObj._parent=obj;
+	var property;
+	var key;
+	var curLevel=1;
+	var lastLevel=1;
+	var key;
+	var val;
+	for(var i=0;i<lines.length;i++){
+		var line=lines[i];
+		var keyVal = getKeyVal(line);
+		if(keyVal.key){
+			property=new Property(keyVal.key,keyVal.value)			
+		}else{
+			if(keyVal.value){
+				property.addValue(keyVal.value);
+			}
+		}
+		curLevel=line.split("\t").length;
+		
+		if(curLevel<lastLevel){
+			for(var j=lastLevel;j>curLevel;j--){
+				curObj=curObj._parent;
+			}
+			curObj.addProperty(property);
+		}else if(curLevel>lastLevel){
+			lastObj._parent=curObj;
+			curObj=lastObj;
+			if(keyVal.key){
+				curObj.addProperty(property);
+			}
+		}else if(keyVal.key){
+			curObj.addProperty(property);
+		}
+		lastObj = property;
+		lastLevel=curLevel		
+	}
+	var simpleObj = obj.getSimplifiedObject();
+	obj=simpleObj.root;
+	if(currentId){
+		obj._id=currentId;
+	}
+	
+	var o=JSON.stringify(obj, function(k,v){
+		if(k.indexOf("_")==0){
+			if(k=="_id"){
+				return v;
+			}else{
+				return undefined;
+			}
+		}else{
+			return v;
+		}
+	});
+	var parms = {"colname":"contact","obj":o};
+	
+	
+	$.get("/save",parms,function(data){
+		alert("data: "+JSON.stringify(data));
+		listContacts();
+	})
+	
+}
+function Property(key,val){
+	this._key=key;
+	this._hasProperties=false;
+	this._values=[];
+	this._properties=[];
+	
+	this.getValue=function(){
+		if(this._values.length>1){
+			return this._values;
+		}else if(this._values.length==1){
+			return this._values[0];
+		}else{
+			return undefined;
+		}
+	}
+	this.addValue=function(str){
+		if(this._values.length>0){
+			this.value=this._values;
+		}else{
+			this.value=str;
+		}
+		this._values.push(str);
+	}
+	this.addProperty=function(p){
+		this._hasProperties = true;
+		this._properties.push(p);
+		this[p._key]=p;
+	}
+	this.getSimplifiedObject=function(o){
+		if(!o){
+			o={};
+		}
+		
+		if(this._hasProperties){
+			o[this._key]={};
+			for(var i=0;i<this._properties.length;i++){
+				this._properties[i].getSimplifiedObject(o[this._key]);
+			}
+		}else{
+			o[this._key]=this.value;
+		}
+		return o;
+	}
+	if(val){	
+		this.addValue(val);		
+	}
+}
+function deleteContact(c){
+	var id=c._id;
+	var url ="/delete/contact/"+id;
+	
+	$.getJSON(url,function(data,status,xhr){
+		alert("Removed: "+data.removed);
+		createNew();
+		listContacts();
+	});
+}
+function getKeyVal(line,deflt){
+	var ret = {key:false,value:false};
+	
+	if(line){
+		var trimline = line.trim();
+		if(trimline!=""){
+			var io = trimline.indexOf("]:");
+			if(io>0){
+				ret.key=trimline.substring(1,io);
+				ret.value=trimline.substring(trimline.indexOf("]:")+2);
+			}else{
+				ret.key=false;
+				ret.value=trimline;
+			}
+		}
+	}
+	return ret;
+}
+function listContacts(){
+	var $list = $("#list");
+	$list.empty();
+	var parms={"o":JSON.stringify({fullname:1})}
+	//parms=JSON.stringify(parms);
+	console.log(parms);
+	var contacts = $.getJSON("/list/contact",parms,function(data,status,xhr){
+		$(data).each(function(i,e){
+			$list.append(new vcard(e));
+		});
+		
+	});
+}
+function vcard(c){
+	var $div=$("<div/>").addClass("vcard").click(function(event){
+		var $e=$(this);
+		edit($e.data("contact"));
+	}).data("contact",c).append(
+		$("<div/>")
+			.addClass("head")
+			.text(c.fullname)
+			.append(
+				$("<span/>")
+					.css({position:"absolute",right:"0px"})
+					.addClass("button")
+					.addClass("icon")
+					.addClass("white")
+					.addClass("delete")
+					.click(function(event){
+						event.preventDefault();
+						deleteContact(c);
+					})
+			)
+	);
+	return $div;
+}
+
+</script>
+<div>
+<div id="controls" style="position:absolute;top:0px;left:0px;background-color:white;">
+	<span class="hovertext icon info">
+		<span class="content">
+			[tab] = move to next line<br/>
+			[shift] + [tab] = exit the editor box<br/>
+			[enter] = insert a new line<br/>
+			[ctrl] + [shift] + [enter] = save<br/>
+			[ctrl] + [space] = shift right<br/>
+			[shift] + [space] = shift left
+		</span>
+	</span>	
+</div>
+
+<textarea id="editor" style="width:600px;height:400px;"></textarea>
+<div id="properties"></div>
+</div>
+<div style="position:absolute;top:10px;left:620px" id="list"></div>
