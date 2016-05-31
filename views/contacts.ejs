@@ -1,0 +1,80 @@
+<stylesheet type="text/css">
+</stylesheet>
+<script>
+$(document).ready(function(){
+	$("#filter").keyup(function(evt){
+		doSearch(this.form);
+	})
+	doSearch();
+});
+function doSearch(f){
+	var parms = {}
+	if(f){
+		var val = $(f.filter).val();
+		if(val && val !=""){
+			var q={"$or":[{},{},{}]};
+			q["$or"][0].fullname={"$regex":".*"+val+".*","$options":"i"};
+			q["$or"][1].firstname=q["$or"][0].fullname
+			q["$or"][2].lastname=q["$or"][0].fullname
+			parms.q = JSON.stringify(q);
+		}
+	}
+	
+	function joinNonEmpties(vals,j){
+		var res = "";
+		for(var i=0;i<vals.length;i++){
+			if(vals[i] && vals[i]!=""){
+				if(res!=""){
+					res+=j;
+				}
+				res+=vals[i];
+			}
+		}
+		return res;
+	}
+	
+	$.getJSON("/list/contact",parms,function(data){
+		var $tbl = $("#div-results-table");
+		$tbl.empty();
+		
+		$.each(data,function(i,obj){
+			var tr = $("<tr/>");
+			var td = $("<td/>").text(joinNonEmpties([obj.lastname,obj.firstname],",")).appendTo(tr);
+			td = $("<td/>").text((obj.home?"Home: "+obj.home:""));
+			if(obj.mobile!="" && obj.home+obj.mobile!=""){
+				td.append($("<br/>Mobile: "));
+				td.append(obj.mobile);
+			}
+			tr.append(td);
+			
+			var addr = joinNonEmpties([obj.address,obj.address2],"<br/>");
+			var cityState = joinNonEmpties([obj.city,obj.state],",");
+			var cityStateZip = joinNonEmpties([cityState,obj.zip],"  ");
+			var cityStateZipCountry = joinNonEmpties([cityStateZip,obj.country],"<br/>");
+			
+			td = $("<td/>").html(joinNonEmpties([addr,cityStateZipCountry],"<br/>")).appendTo(tr);
+			
+			td = $("<td/>").append("<a href='/contactform?id="+obj["_id"]+"'>edit</a>").appendTo(tr);
+			$tbl.append(tr);
+		});
+	});
+}
+</script>
+<div id="div-query">
+	<form name="query" onsubmit="try{doSearch(this)}catch(e){alert(e)}">
+		<label for="filter">Filter:</label>
+		<input type="text" name="filter" id="filter"/>
+	</form>
+</div>
+<div id="div-results">
+	<table>
+		<thead>
+			<tr>
+				<th>Name</th>
+				<th>Phone</th>
+				<th>Address</th>
+			</tr>
+		</thead>
+		<tbody id="div-results-table"/>
+	</table>
+</div>

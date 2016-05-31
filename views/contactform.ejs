@@ -1,0 +1,107 @@
+<%
+function getWithDefault(obj,fld,dflt){
+	if(obj[fld]){
+		return obj[fld];
+	}else if(dflt){
+		return dflt;
+	}else{
+		return "";
+	}
+}
+%>
+<script>
+	$(document).ready(function(){
+		var $zip = $("#zip");
+		$zip.change(function(evt){
+			var zip = $(this).val();
+			var country = $(this.form.country).val();
+			var form = this.form
+			
+			$.getJSON("/zipdata",{zip:zip,country:country},function(data){
+				for(var i in data){
+					$(form[i]).val(data[i]);
+				}
+			});
+		})
+	})
+	function saveContact(f){
+		var o = {};
+		var $fld=null;
+		try{
+			var fields = $(f).serializeArray();
+			for(var i=0;i<fields.length;i++){
+				var fld = fields[i];
+				o[fld.name]=fld.value;
+			}
+			
+			
+		}catch(e){
+			debugger;
+			alert(e);
+		}
+		
+		var parms = {"colname":"contact","obj":JSON.stringify(o)};
+		alert(JSON.stringify(parms));
+		$.get("/save",parms,function(data){
+			alert("data: "+JSON.stringify(data));
+			//listContacts();
+		})
+	}
+</script>
+<form id="contact" name="contact" method="post" action="addcontact" onsubmit="try{saveContact(this)}catch(e){alert(e)};return false;">
+	<input type="text" name="_id" value="<%= getWithDefault(contact,"_id") %>"/>
+	<table>
+		
+		<tr>
+			<td class="label" for="lastname"><%= getWithDefault(contact_form,"lastname",{label:"Last"}).label %></td>
+			<td><input type="text" name="lastname" id="lastname" value="<%= getWithDefault(contact,"lastname")%>"/></td>
+		</tr>
+		<tr>
+			<td class="label" for="firstname"><%= getWithDefault(contact_form,"firstname",{label:"First"}).label %></td>
+			<td><input type="text" name="firstname" id="firstname" value="<%= getWithDefault(contact,"firstname")%>"/></td>
+		</tr>
+		<tr>
+			<td class="label" for="fullname"><%= getWithDefault(contact_form,"fullname",{label:"Full Name"}).label %></td>
+			<td><input type="text" name="fullname" id="fullname" value="<%= getWithDefault(contact,"fullname")%>"/></td>
+		</tr>
+		<tr>
+			<td class="label" for="home"><%= getWithDefault(contact_form,"home",{label:"Home Phone"}).label %></td>
+			<td><input type="text" name="home" id="home" value="<%= getWithDefault(contact,"home")%>"/></td>
+		</tr>
+		<tr>
+			<td class="label" for="mobile"><%= getWithDefault(contact_form,"mobile",{label:"Mobile Phone"}).label %></td>
+			<td><input type="text" name="mobile" id="mobile" value="<%= getWithDefault(contact,"mobile")%>"/></td>
+		</tr>
+		<tr>
+			<td class="label" for="e-mail"><%= getWithDefault(contact_form,"e-mail",{label:"E-Mail"}).label %></td>
+			<td><input type="text" name="e-mail" id="e-mail" value="<%= getWithDefault(contact,"e-mail")%>"/></td>
+		</tr>
+		<tr>
+			<td class="label" for="country"><%= getWithDefault(contact_form,"country",{label:"Country"}).label %></td>
+			<td><input type="text" name="country" id="country" value="<%= getWithDefault(contact,"country")%>"/></td>
+		</tr>
+		<tr>
+			<td class="label" for="zip"><%= getWithDefault(contact_form,"zip",{label:"Postal Code"}).label %></td>
+			<td><input type="text" name="zip" id="zip" value="<%= getWithDefault(contact,"zip")%>"/></td>
+		</tr>
+		<tr>
+			<td class="label" for="address"><%= getWithDefault(contact_form,"address",{label:"Address"}).label %></td>
+			<td><input type="text" name="address" id="address" value="<%= getWithDefault(contact,"address")%>"/></td>
+		</tr>
+		<tr>
+			<td class="label" for="address2"><%= getWithDefault(contact_form,"address2",{label:"Address"}).label %></td>
+			<td><input type="text" name="address2" id="address2" value="<%= getWithDefault(contact,"address2")%>"/></td>
+		</tr>
+		<tr>
+			<td class="label" for="city"><%= getWithDefault(contact_form,"city",{label:"City"}).label %></td>
+			<td><input type="text" name="city" id="city" value="<%= getWithDefault(contact,"city")%>"/></td>
+		</tr>
+		<tr>
+			<td class="label" for="state"><%= getWithDefault(contact_form,"state",{label:"State"}).label %></td>
+			<td><input type="text" name="state" id="state" value="<%= getWithDefault(contact,"state")%>"/></td>
+		</tr>
+		<tr>
+			<td colspan="2"><input type="submit" value="Save"/></td>
+		</tr>
+	</table>
+</form>

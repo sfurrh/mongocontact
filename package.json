@@ -7,11 +7,13 @@
     "start": "node app.js"
   },
   "dependencies": {
+    "ejs": "*",
     "express": "3.x",
-    "moment":"2.x",
-    "mongodb":"*",
-    "json-stringify-safe":"*",
-    "ejs":"*"
+    "express-session": "^1.13.0",
+    "formidable": "^1.0.17",
+    "json-stringify-safe": "*",
+    "moment": "2.x",
+    "mongodb": "*",
+    "request": "^2.72.0"
   }
 }
-

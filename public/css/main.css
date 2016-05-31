@@ -97,8 +97,16 @@ textarea {
    Author's custom styles
    ========================================================================== */
 
-
-
+/* ==========================================================================
+	search page
+   ========================================================================== */
+#div-results-table td{
+	vertical-align:top;
+	padding:4px;
+}
+#div-results-table tr:nth-child(even) {
+    background-color: #ccccff;
+}
 
 
 
